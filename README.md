@@ -45,3 +45,15 @@ Cara lain:
 2. **PWA Builder** (pwabuilder.com): masukkan URL Vercel → download APK
 
 Semua fungsi app ada di `api/chat.js` (Node 18+, tanpa dependency eksternal).
+
+## Executor Server (npm & apt) — `/api/run`
+AI bisa menjalankan perintah nyata lewat chat (tulis langsung `npm ...`, `apt ...`, atau `run npm ...`) dan terminal di tab Sandbox (`$` di bawah editor).
+
+- **npm / node / npx**: dieksekusi aman (`execFile`, tanpa shell) di `/tmp/nx9run` — `npm install express` diuji live: 67 paket dalam 3 detik. `npm install -g` & perintah berbahaya diblokir.
+- **apt**: implementasi **pure-Node** (Vercel tidak punya binary `apt-get`). Pakai index `Packages` nyata dari `archive.ubuntu.com` (noble/main amd64):
+  - `apt update` — muat index asli
+  - `apt show <pkg>` — metadata nyata
+  - `apt search <kata>` — cari paket
+  - `apt download <pkg>` — unduh `.deb` nyata ke sandbox
+  - `apt list-deb <pkg>` — bongkar isi ar archive (.deb)
+- Batas serverless: install Sistem penuh (`apt install`) butuh root → tidak bisa di Vercel; file `.deb` tetap bisa diunduh & diperiksa.

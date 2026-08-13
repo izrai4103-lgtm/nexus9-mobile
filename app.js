@@ -82,6 +82,38 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'end' });
     return el;
   }
+  const isRunCmd = (t) => /^(run\s+)?(npm|node|npx|apt|apt-get)\b/.test(t.trim());
+
+  function addTerminal(cmd, data) {
+    const el = document.createElement('div');
+    el.className = 'msg bot';
+    const parts = [data.stdout || '', data.stderr ? `[stderr]\n${data.stderr}` : '', data.error ? `[error] ${data.error}` : '', (!data.stdout && !data.stderr && data.ok !== false) ? `exit ${data.code}` : ''].filter(Boolean).join('\n\n');
+    el.innerHTML = `
+      <div class="avatar">⚡</div>
+      <div>
+        <div class="bubble term"><div class="c">$ ${esc(cmd)}</div>${esc(parts)}</div>
+        <div class="meta"><span>${fmtTime()}</span><span>Terminal · exit ${data.code}</span></div>
+      </div>`;
+    $('#chatList').appendChild(el);
+    el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  async function runCmd(cmd) {
+    const typingEl = addTyping();
+    try {
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cmd: cmd.replace(/^run\s+/i, '') }),
+      });
+      const data = await res.json().catch(() => ({}));
+      typingEl.remove();
+      addTerminal(cmd, { ok: data.ok !== false, code: data.code ?? 1, stdout: data.stdout || '', stderr: data.stderr || '', error: data.error || '' });
+    } catch (err) {
+      typingEl.remove();
+      addTerminal(cmd, { ok: false, code: 1, stdout: '', stderr: '', error: err.message || 'gagal' });
+    }
+  }
 
   async function askAgent(userText, tool) {
     if (!state.apiKey) {
@@ -126,6 +158,7 @@
     input.value = '';
     input.style.height = 'auto';
     $('#statMessages').textContent = state.messages.length;
+    if (isRunCmd(text)) { runCmd(text); return; }
     askAgent(text, null);
   }
 
@@ -344,6 +377,30 @@
     if (stored) sbLoad({ html: localStorage.getItem(SB_STORE.html) || '', css: localStorage.getItem(SB_STORE.css) || '', js: localStorage.getItem(SB_STORE.js) || '' }, false);
     else sbLoad(TEMPLATES.html, true);
   })();
+
+  /* ---------- Terminal npm/apt (Sandbox) ---------- */
+  async function runTerm() {
+    const cmd = $('#termLine').value.trim();
+    if (!cmd) return;
+    haptic();
+    sbLog('cmd', '$ ' + cmd);
+    try {
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cmd }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.stdout) sbLog('log', data.stdout);
+      if (data.stderr) sbLog('warn', data.stderr);
+      if (data.error) sbLog('error', data.error);
+      else if (!data.stdout && !data.stderr) sbLog('info', 'exit ' + (data.code ?? 0));
+    } catch (err) {
+      sbLog('error', 'Gagal terhubung ke executor: ' + err.message);
+    }
+  }
+  $('#termRun').addEventListener('click', runTerm);
+  $('#termLine').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runTerm(); } });
 
   /* ---------- Origin (100% terhubung ke zarifrouter99.lovable.app) ---------- */
   const oframe = $('#originFrame');

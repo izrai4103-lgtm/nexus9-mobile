@@ -145,6 +145,11 @@
         <div class="sb-pane" data-pane="js"><textarea id="sbJs" spellcheck="false" placeholder="JavaScript…"></textarea></div>
         <div class="sb-pane" data-pane="out"><div id="sbConsole" class="sb-console"></div></div>
       </div>
+      <div class="term-bar">
+        <span class="term-prompt">$</span>
+        <input id="termLine" placeholder="npm install express · apt download curl · npm -v" spellcheck="false" enterkeyhint="go">
+        <button id="termRun" class="mini-btn cta" type="button">⏎</button>
+      </div>
       <div class="sb-preview-label">📺 Preview (sandboxed)</div>
       <iframe id="sbFrame" class="sb-frame" title="Sandbox preview" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
     </section>
