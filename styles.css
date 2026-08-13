@@ -14,6 +14,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+[hidden] { display:none !important; }
 html,body { height:100%; }
 body {
   font-family:'DM Sans',system-ui,sans-serif;
