@@ -3,8 +3,8 @@
 Versi **mobile-only** dari aplikasi AI agent NEXUS-9 (`zarifrouter99.lovable.app`), dibangun ulang sebagai PWA yang bisa di-install di Android/iPhone (web app) dan siap di-bundle jadi APK.
 
 ## Fitur
-- 🌐 **Tab Origin** — 100% terhubung ke app asli `zarifrouter99.lovable.app` (iframe fullscreen + tombol back/forward/reload/buka tab baru), semua fitur asli tetap jalan karena app asli itu SPA client-side
-- 🧪 **Sandbox lengkap** — editor HTML/CSS/JS live + preview sandboxed (iframe `sandbox` tanpa `allow-same-origin`) + panel Console yang menangkap `console.log/info/warn/error`, auto-run, 4 template (HTML Snack, JS Playground, Todo CRUD, Canvas), kode tersimpan di localStorage
+- 🧪 **Sandbox otomatis ala OpenClaw/OpenCode** — AI memakai sandbox server sendirian (npm · node · npx · apt) langsung dari chat lewat blok `<tool>perintah</tool>`; hasil eksekusi **nyata** dikirim balik ke AI, AI menjawab berdasarkan output itu, dan hasilnya tampil sebagai bubble terminal di chat. Tab Sandbox & Origin dihapus dari UI — sandbox khusus dipakai AI, bukan user
+- 💬 Chat AI dengan **BYO API key** (Gemini, Groq, GPT, Claude) + system prompt agen otonom (maks 3 ronde tool-loop per pesan)
 - 💬 Chat AI dengan **BYO API key** (Gemini, Groq, GPT, Claude) — key hanya tersimpan di `localStorage` browser, tidak pernah ke server kami
 - 🌐 Web search real-time (Bing → Mojeek → DuckDuckGo, di-proxy server)
 - 🛒 Tool Shopee — login sesi sendiri + live search + link resmi buy-now/add-to-cart/checkout/deeplink app (mirror mekanisme asli)
@@ -15,7 +15,7 @@ Versi **mobile-only** dari aplikasi AI agent NEXUS-9 (`zarifrouter99.lovable.app
 ## Struktur
 ```
 nexus9-mobile/
-├── index.html          # shell aplikasi
+├── index.html          # shell aplikasi (tab: Chat · Agent · Setelan)
 ├── styles.css          # UI mobile-only
 ├── app.js              # logika chat, settings, tools, PWA
 ├── sw.js               # service worker (offline)
@@ -47,7 +47,7 @@ Cara lain:
 Semua fungsi app ada di `api/chat.js` (Node 18+, tanpa dependency eksternal).
 
 ## Executor Server (npm & apt) — `/api/run`
-AI bisa menjalankan perintah nyata lewat chat (tulis langsung `npm ...`, `apt ...`, atau `run npm ...`) dan terminal di tab Sandbox (`$` di bawah editor).
+AI menjalankan perintah nyata lewat chat secara otomatis. Di jawabannya AI menulis blok `<tool>perintah</tool>` (contoh: `<tool>npm install express</tool>`), aplikasi mengeksekusinya via `/api/run`, hasilnya dikirim balik ke AI (ronde berikutnya), dan bubble terminal tampil di chat. Maks 2 perintah per ronde, maks 3 ronde per pesan.
 
 - **npm / node / npx**: dieksekusi aman (`execFile`, tanpa shell) di `/tmp/nx9run` — `npm install express` diuji live: 67 paket dalam 3 detik. `npm install -g` & perintah berbahaya diblokir.
 - **apt**: implementasi **pure-Node** (Vercel tidak punya binary `apt-get`). Pakai index `Packages` nyata dari `archive.ubuntu.com` (noble/main amd64):
