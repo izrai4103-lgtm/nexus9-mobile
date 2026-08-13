@@ -69,3 +69,13 @@ RTK (Runtime Token Saver) mengompres output tool **secara lossless** sebelum dik
 - **Hemat nyata**: `git diff` 22,7KB → 14,2KB (−38%), `git log` 28KB → 16,7KB (−41%), output log berulang hingga −97%.
 - **Di mana**: toggle `RTK` di toolbar Sandbox, dan pengaturan **⚡ RTK Token Saver** di tab Setelan (total token/char dihemat + mode on/off). Output yang terkompresi menampilkan badge `⚡ RTK −X%` di chat.
 - **Nonaktifkan per-perintah**: kirim `{"cmd": "...", "compress": false}` ke `/api/run`.
+
+## 📊 Quota Tracking — pantau sisa kuota & reset real-time
+Quota Tracking memantau pemakaian AI kamu **secara real-time** (tick tiap detik) dan memblokir otomatis saat kuota habis.
+
+- **Data nyata**: dihitung dari respons provider yang lewat aplikasi ini — request & token per provider (Gemini, Groq, GPT, Claude), tersimpan di `localStorage`.
+- **Hitungan mundur reset**: siklus harian (tengah malam), mingguan (Senin 00:00), bulanan (tgl 1), atau **tanggal khusus** untuk penyesuaian masa langganan.
+- **Batas ganda**: batas token **dan** batas request per siklus, dengan preset 100K / 500K / 1M / 5M token.
+- **Enforcement**: saat batas tercapai, chat AI diblokir dengan pesan + waktu reset tersisa (bisa dimatikan).
+- **Di mana**: pill `📊 % · countdown` di layar Chat (klik → buka Setelan), dan kartu **📊 Quota Tracking** di tab Setelan. Reset manual tersedia.
+- **Catatan jujur**: ini bukan kuota server/dashboard provider — API key kamu BYO, jadi kuota dihitung dari pemakaian nyata lewat aplikasi ini.
