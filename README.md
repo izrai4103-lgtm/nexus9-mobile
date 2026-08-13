@@ -57,3 +57,15 @@ AI bisa menjalankan perintah nyata lewat chat (tulis langsung `npm ...`, `apt ..
   - `apt download <pkg>` — unduh `.deb` nyata ke sandbox
   - `apt list-deb <pkg>` — bongkar isi ar archive (.deb)
 - Batas serverless: install Sistem penuh (`apt install`) butuh root → tidak bisa di Vercel; file `.deb` tetap bisa diunduh & diperiksa.
+
+## ⚡ RTK Token Saver — kompresi otomatis output
+RTK (Runtime Token Saver) mengompres output tool **secara lossless** sebelum dikirim ke model — konteks tetap utuh, token lebih hemat.
+
+- **Cara kerja** (`lib/rtk.js`, otomatis di `/api/run`):
+  1. Buang ANSI escape codes
+  2. Trim whitespace ujung baris + gabung baris kosong beruntun
+  3. Buang baris duplikat (info nol, cukup tampil 1x)
+  4. Cap panjang output di 60K char
+- **Hemat nyata**: `git diff` 22,7KB → 14,2KB (−38%), `git log` 28KB → 16,7KB (−41%), output log berulang hingga −97%.
+- **Di mana**: toggle `RTK` di toolbar Sandbox, dan pengaturan **⚡ RTK Token Saver** di tab Setelan (total token/char dihemat + mode on/off). Output yang terkompresi menampilkan badge `⚡ RTK −X%` di chat.
+- **Nonaktifkan per-perintah**: kirim `{"cmd": "...", "compress": false}` ke `/api/run`.
