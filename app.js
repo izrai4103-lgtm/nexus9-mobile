@@ -27,6 +27,29 @@
   const esc = (s) => s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtTime = () => new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
+  /* ---------- RTK Token Saver ---------- */
+  const rtkState = {
+    chars: Number(localStorage.getItem('nx9_rtk_chars') || 0),
+    runs: Number(localStorage.getItem('nx9_rtk_runs') || 0),
+    on: localStorage.getItem('nx9_rtk_on') !== '0',
+  };
+  function rtkSave(meta) {
+    if (meta && meta.saved > 0) {
+      rtkState.chars += meta.saved;
+      rtkState.runs += 1;
+      localStorage.setItem('nx9_rtk_chars', String(rtkState.chars));
+      localStorage.setItem('nx9_rtk_runs', String(rtkState.runs));
+      renderRtk();
+    }
+  }
+  function renderRtk() {
+    $('#rtkChars').textContent = rtkState.chars > 1024 ? (rtkState.chars / 1024).toFixed(1) + 'KB' : rtkState.chars + 'B';
+    $('#rtkTokens').textContent = Math.round(rtkState.chars / 4).toLocaleString('id-ID');
+    $('#rtkRuns').textContent = rtkState.runs;
+    $('#rtkSwitch').classList.toggle('on', rtkState.on);
+  }
+  const rtkBadge = (m) => (m && m.savedPct > 0 ? `<span class="rtk-badge">⚡ RTK −${m.savedPct}% · ${(m.saved / 1024).toFixed(1)}KB dihemat</span>` : '');
+
   function setStatus(text, online = false) {
     const bar = $('#statusBar');
     if (!text) { bar.hidden = true; return; }
@@ -91,11 +114,12 @@
     el.innerHTML = `
       <div class="avatar">⚡</div>
       <div>
-        <div class="bubble term"><div class="c">$ ${esc(cmd)}</div>${esc(parts)}</div>
+        <div class="bubble term"><div class="c">$ ${esc(cmd)}</div>${esc(parts)}${rtkBadge(data.rtk)}</div>
         <div class="meta"><span>${fmtTime()}</span><span>Terminal · exit ${data.code}</span></div>
       </div>`;
     $('#chatList').appendChild(el);
     el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    rtkSave(data.rtk);
   }
 
   async function runCmd(cmd) {
@@ -104,11 +128,11 @@
       const res = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cmd: cmd.replace(/^run\s+/i, '') }),
+        body: JSON.stringify({ cmd: cmd.replace(/^run\s+/i, ''), compress: rtkState.on }),
       });
       const data = await res.json().catch(() => ({}));
       typingEl.remove();
-      addTerminal(cmd, { ok: data.ok !== false, code: data.code ?? 1, stdout: data.stdout || '', stderr: data.stderr || '', error: data.error || '' });
+      addTerminal(cmd, { ok: data.ok !== false, code: data.code ?? 1, stdout: data.stdout || '', stderr: data.stderr || '', error: data.error || '', rtk: data.rtk });
     } catch (err) {
       typingEl.remove();
       addTerminal(cmd, { ok: false, code: 1, stdout: '', stderr: '', error: err.message || 'gagal' });
@@ -388,19 +412,32 @@
       const res = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cmd }),
+        body: JSON.stringify({ cmd, compress: $('#rtkToggle').checked }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.stdout) sbLog('log', data.stdout);
       if (data.stderr) sbLog('warn', data.stderr);
       if (data.error) sbLog('error', data.error);
       else if (!data.stdout && !data.stderr) sbLog('info', 'exit ' + (data.code ?? 0));
+      if (data.rtk) {
+        if (data.rtk.savedPct > 0) sbLog('info', `⚡ RTK: −${data.rtk.savedPct}% token · ${data.rtk.original} → ${data.rtk.compressed} char`);
+        rtkSave(data.rtk);
+      }
     } catch (err) {
       sbLog('error', 'Gagal terhubung ke executor: ' + err.message);
     }
   }
   $('#termRun').addEventListener('click', runTerm);
   $('#termLine').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); runTerm(); } });
+
+  $('#rtkSwitch').addEventListener('click', () => {
+    rtkState.on = !rtkState.on;
+    localStorage.setItem('nx9_rtk_on', rtkState.on ? '1' : '0');
+    renderRtk();
+    setStatus(rtkState.on ? 'RTK Token Saver aktif ⚡' : 'RTK Token Saver dimatikan', rtkState.on);
+    setTimeout(() => setStatus(''), 1800);
+  });
+  renderRtk();
 
   /* ---------- Origin (100% terhubung ke zarifrouter99.lovable.app) ---------- */
   const oframe = $('#originFrame');

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
+const { compress } = require('../lib/rtk');
 const WORK = '/tmp/nx9run';
 const APT_DIR = '/tmp/nx9apt';
 const MAX_OUT = 512 * 1024;
@@ -179,7 +180,25 @@ async function handler(req, res) {
     } else {
       result = await run(parsed.tool, parsed.args, { cwd: parsed.cwd, timeout: 45000 });
     }
-    return res.status(200).json({ ok: result.ok, code: result.code, stdout: result.stdout, stderr: result.stderr, error: result.error || (result.ok ? '' : `exit ${result.code}`) });
+    let rtk = null;
+    if (body.compress !== false) {
+      const cOut = compress(result.stdout || '');
+      const cErr = compress(result.stderr || '');
+      result.stdout = cOut.text;
+      result.stderr = cErr.text;
+      const original = cOut.original + cErr.original;
+      const compressed = cOut.compressed + cErr.compressed;
+      const saved = Math.max(0, original - compressed);
+      rtk = {
+        original,
+        compressed,
+        saved,
+        savedPct: original ? Math.round((saved / original) * 100) : 0,
+        rules: [...new Set([...cOut.rules, ...cErr.rules])],
+        skipped: cOut.skipped && cErr.skipped,
+      };
+    }
+    return res.status(200).json({ ok: result.ok, code: result.code, stdout: result.stdout, stderr: result.stderr, error: result.error || (result.ok ? '' : `exit ${result.code}`), rtk });
   } catch (err) {
     return res.status(500).json({ ok: false, error: String(err.message || err).slice(0, 400) });
   }

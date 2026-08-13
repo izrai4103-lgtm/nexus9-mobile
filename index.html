@@ -132,6 +132,7 @@
         </select>
         <button id="sbRun" class="mini-btn cta" type="button">▶ Run</button>
         <label class="sb-auto"><input type="checkbox" id="sbAuto" checked> auto</label>
+        <label class="sb-auto rtk" title="RTK Token Saver — kompres otomatis output tool"><input type="checkbox" id="rtkToggle" checked> RTK</label>
       </div>
       <div class="sb-tabs">
         <button class="sb-tab active" data-tab="html" type="button">HTML</button>
@@ -205,6 +206,17 @@
           <span id="hapticSwitch" class="switch on" data-state="1"></span>
         </div>
       </div>
+      <div class="card rtk-card">
+        <h2>⚡ RTK Token Saver</h2>
+        <p class="rtk-desc">Kompres otomatis output tool (git diff, log, dll) — hemat token tanpa hilang konteks.</p>
+        <div class="stats-grid">
+          <div class="stat"><b id="rtkTokens">0</b><span>Token dihemat</span></div>
+          <div class="stat"><b id="rtkChars">0</b><span>Char dihemat</span></div>
+          <div class="stat"><b id="rtkRuns">0</b><span>Output</span></div>
+        </div>
+        <div class="row-between"><span>Mode aktif</span><span id="rtkSwitch" class="switch on" data-state="1"></span></div>
+      </div>
+
       <div class="card about-card">
         <h2>ℹ️ Tentang</h2>
         <p>NEXUS-9 Mobile v1.0 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
