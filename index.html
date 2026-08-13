@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>NEXUS-9 Mobile — AI Agent</title>
+<meta name="description" content="NEXUS-9 Mobile: AI agent chat mobile-only dengan BYO API key. Browse web, cari & pesan Shopee, sintaks kode, dan MCP tools.">
+<meta name="theme-color" content="#0b0b16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS-9">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">N9</div>
+      <div class="brand-text">
+        <h1>NEXUS-9 <span class="badge-mobile">MOBILE</span></h1>
+        <p>AI Agent · BYO Key · no server</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnInstall" class="icon-btn" title="Install App" hidden aria-label="Install App">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button id="btnReset" class="icon-btn" title="Hapus percakapan" aria-label="Hapus percakapan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="statusBar" class="status-bar" hidden></div>
+
+  <main class="views">
+    <section id="view-chat" class="view active">
+      <div id="chatList" class="chat-list" aria-live="polite">
+        <div class="welcome card">
+          <div class="welcome-glow"></div>
+          <h2>Halo, aku NEXUS-9 👋</h2>
+          <p>Aku agent AI kamu — bisa browsing web, cari & pesan di Shopee, tulis kode, dan bantu apa saja. Pakai <b>API key kamu sendiri</b>, tersimpan aman cuma di browser ini.</p>
+          <div class="welcome-tools">
+            <span class="chip">🌐 Web Search</span>
+            <span class="chip">🛒 Shopee</span>
+            <span class="chip">⌨️ Code</span>
+            <span class="chip">🧩 MCP Tools</span>
+          </div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="composer-tools">
+          <button class="tool-btn" data-tool="web" aria-label="Web search"><span>🌐</span> Search</button>
+          <button class="tool-btn" data-tool="shopee" aria-label="Shopee"><span>🛒</span> Shopee</button>
+          <button class="tool-btn" data-tool="code" aria-label="Code"><span>⌨️</span> Code</button>
+        </div>
+        <div class="composer-row">
+          <textarea id="input" rows="1" placeholder="Tanya NEXUS-9 apa saja…" enterkeyhint="send"></textarea>
+          <button id="btnSend" class="send-btn" aria-label="Kirim">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <p class="composer-note">NEXUS-9 tidak pernah menyimpan atau mengirim key kamu ke server kami.</p>
+      </div>
+    </section>
+
+    <section id="view-agent" class="view">
+      <div class="card agent-card">
+        <h2>🛠️ Tools Aktif</h2>
+        <div class="tool-list">
+          <div class="tool-item" data-tool="web">
+            <div class="tool-icon">🌐</div>
+            <div><b>Web Search</b><p>Cari informasi real-time dari web.</p></div>
+            <span class="switch on" data-state="1"></span>
+          </div>
+          <div class="tool-item" data-tool="shopee">
+            <div class="tool-icon">🛒</div>
+            <div><b>Shopee Order</b><p>Cari & pesan produk marketplace.</p></div>
+            <span class="switch" data-state="0"></span>
+          </div>
+          <div class="tool-item" data-tool="code">
+            <div class="tool-icon">⌨️</div>
+            <div><b>Code Runner</b><p>Generate & format kode apa saja.</p></div>
+            <span class="switch on" data-state="1"></span>
+          </div>
+          <div class="tool-item" data-tool="mcp">
+            <div class="tool-icon">🧩</div>
+            <div><b>MCP Server</b><p>Hubungkan tools server kamu.</p></div>
+            <span class="switch on" data-state="1"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card shopee-card">
+        <h2>🛒 Status Shopee</h2>
+        <div id="shopeeStatus" class="shopee-status">
+          <div class="status-dot"></div>
+          Belum login — key NEXUS kamu tetap aman.
+        </div>
+        <button id="btnShopeeLogin" class="ghost-btn">Login Shopee</button>
+      </div>
+      <div class="card">
+        <h2>📊 Statistik Sesi</h2>
+        <div class="stats-grid">
+          <div class="stat"><b id="statMessages">0</b><span>Pesan</span></div>
+          <div class="stat"><b id="statTokens">0</b><span>Token</span></div>
+          <div class="stat"><b id="statTime">0m</b><span>Waktu</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="card">
+        <h2>⚙️ Provider AI</h2>
+        <div class="field">
+          <label for="provider">Pilih model</label>
+          <select id="provider">
+            <option value="gemini">Gemini (Google)</option>
+            <option value="groq">Groq (Llama)</option>
+            <option value="openai">GPT (OpenAI)</option>
+            <option value="claude">Claude (Anthropic)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="apiKey">API key kamu <span class="hint">tersimpan di browser ini saja</span></label>
+          <div class="key-row">
+            <input type="password" id="apiKey" placeholder="Masukkan API key…" autocomplete="off">
+            <button id="btnToggleKey" class="mini-btn" type="button">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modelName">Nama model (opsional)</label>
+          <input type="text" id="modelName" placeholder="contoh: gemini-2.5-flash" autocomplete="off">
+        </div>
+        <button id="btnSave" class="primary-btn">Simpan Pengaturan</button>
+        <p id="settingsMsg" class="settings-msg"></p>
+      </div>
+      <div class="card">
+        <h2>🎨 Tampilan</h2>
+        <div class="row-between">
+          <span>Mode gelap</span>
+          <span id="themeSwitch" class="switch on" data-state="1" role="switch" aria-checked="true"></span>
+        </div>
+        <div class="row-between">
+          <span>Getar haptik (Android)</span>
+          <span id="hapticSwitch" class="switch on" data-state="1"></span>
+        </div>
+      </div>
+      <div class="card about-card">
+        <h2>ℹ️ Tentang</h2>
+        <p>NEXUS-9 Mobile v1.0 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
+        <div class="row-between"><span>Versi</span><b>1.0.0</b></div>
+        <div class="row-between"><span>Lisensi</span><b>MIT</b></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" role="tablist">
+    <button class="tab active" data-view="chat" role="tab"><span class="tab-ico">💬</span><span>Chat</span></button>
+    <button class="tab" data-view="agent" role="tab"><span class="tab-ico">🧠</span><span>Agent</span></button>
+    <button class="tab" data-view="settings" role="tab"><span class="tab-ico">⚙️</span><span>Setelan</span></button>
+  </nav>
+</div>
+
+<div id="installSheet" class="sheet" hidden>
+  <div class="sheet-inner">
+    <div class="sheet-grab"></div>
+    <h3>Install NEXUS-9 Mobile 📲</h3>
+    <p>Jadikan aplikasi di home screen kamu. Buka offline, fullscreen, seperti app native.</p>
+    <button id="btnInstallCta" class="primary-btn">Install Sekarang</button>
+    <button id="btnInstallLater" class="ghost-btn full">Nanti saja</button>
+  </div>
+</div>
+
+<script src="/app.js" defer></script>
+</body>
+</html>
