@@ -46,11 +46,12 @@
         <div class="welcome card">
           <div class="welcome-glow"></div>
           <h2>Halo, aku NEXUS-9 👋</h2>
-          <p>Aku agent AI kamu — bisa browsing web, cari & pesan di Shopee, tulis kode, dan bantu apa saja. Pakai <b>API key kamu sendiri</b>, tersimpan aman cuma di browser ini.</p>
+          <p>Aku agent AI kamu — bisa browsing web, cari & pesan di Shopee, tulis kode, dan bantu apa saja. AI memakai <b>sandbox otomatis</b> (npm/apt/node) untuk menjalankan kode & perintah — hasil nyata, bukan simulasi. Pakai <b>API key kamu sendiri</b>, tersimpan aman cuma di browser ini.</p>
           <div class="welcome-tools">
             <span class="chip">🌐 Web Search</span>
             <span class="chip">🛒 Shopee</span>
             <span class="chip">⌨️ Code</span>
+            <span class="chip">🧪 Sandbox Auto</span>
             <span class="chip">🧩 MCP Tools</span>
           </div>
         </div>
@@ -68,7 +69,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
           </button>
         </div>
-        <p class="composer-note">NEXUS-9 tidak pernah menyimpan atau mengirim key kamu ke server kami.</p>
+        <p class="composer-note">AI otomatis memakai sandbox (npm · node · npx · apt) saat kamu minta menjalankan sesuatu — hasilnya nyata, tampil di chat. NEXUS-9 tidak pernah menyimpan key kamu.</p>
       </div>
     </section>
 
@@ -98,6 +99,10 @@
           </div>
         </div>
       </div>
+      <div class="card">
+        <h2>🧪 Sandbox Otomatis</h2>
+        <p class="quota-desc">AI menjalankan sandbox sendiri (npm · node · npx · apt) langsung dari chat — kamu tidak perlu terminal lagi. Hasil eksekusi nyata ditampilkan otomatis, lalu AI menjawab berdasarkan output itu.</p>
+      </div>
       <div class="card shopee-card">
         <h2>🛒 Shopee — Auto Order</h2>
         <div id="shopeeStatus" class="shopee-status">
@@ -119,54 +124,6 @@
           <div class="stat"><b id="statTokens">0</b><span>Token</span></div>
           <div class="stat"><b id="statTime">0m</b><span>Waktu</span></div>
         </div>
-      </div>
-    </section>
-
-    <!-- SANDBOX VIEW -->
-    <section id="view-sandbox" class="view plain">
-      <div class="sb-toolbar">
-        <select id="sbTemplate" aria-label="Template sandbox">
-          <option value="html">HTML Snack</option>
-          <option value="js">JS Playground</option>
-          <option value="todo">Todo CRUD</option>
-          <option value="canvas">Canvas</option>
-        </select>
-        <button id="sbRun" class="mini-btn cta" type="button">▶ Run</button>
-        <label class="sb-auto"><input type="checkbox" id="sbAuto" checked> auto</label>
-        <label class="sb-auto rtk" title="RTK Token Saver — kompres otomatis output tool"><input type="checkbox" id="rtkToggle" checked> RTK</label>
-      </div>
-      <div class="sb-tabs">
-        <button class="sb-tab active" data-tab="html" type="button">HTML</button>
-        <button class="sb-tab" data-tab="css" type="button">CSS</button>
-        <button class="sb-tab" data-tab="js" type="button">JS</button>
-        <button class="sb-tab" data-tab="out" type="button">Console</button>
-      </div>
-      <div class="sb-panels">
-        <div class="sb-pane active" data-pane="html"><textarea id="sbHtml" spellcheck="false" placeholder="HTML…"></textarea></div>
-        <div class="sb-pane" data-pane="css"><textarea id="sbCss" spellcheck="false" placeholder="CSS…"></textarea></div>
-        <div class="sb-pane" data-pane="js"><textarea id="sbJs" spellcheck="false" placeholder="JavaScript…"></textarea></div>
-        <div class="sb-pane" data-pane="out"><div id="sbConsole" class="sb-console"></div></div>
-      </div>
-      <div class="term-bar">
-        <span class="term-prompt">$</span>
-        <input id="termLine" placeholder="npm install express · apt download curl · npm -v" spellcheck="false" enterkeyhint="go">
-        <button id="termRun" class="mini-btn cta" type="button">⏎</button>
-      </div>
-      <div class="sb-preview-label">📺 Preview (sandboxed)</div>
-      <iframe id="sbFrame" class="sb-frame" title="Sandbox preview" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
-    </section>
-
-    <!-- ORIGIN VIEW -->
-    <section id="view-origin" class="view plain">
-      <div class="origin-toolbar">
-        <button id="btnOriginBack" class="icon-btn small" type="button" aria-label="Kembali">‹</button>
-        <button id="btnOriginFwd" class="icon-btn small" type="button" aria-label="Maju">›</button>
-        <button id="btnOriginReload" class="icon-btn small" type="button" aria-label="Muat ulang">↻</button>
-        <a id="btnOriginOpen" class="icon-btn small" href="https://zarifrouter99.lovable.app" target="_blank" rel="noopener" aria-label="Buka di tab baru">↗</a>
-        <span class="origin-title">zarifrouter99.lovable.app</span>
-      </div>
-      <div class="origin-wrap">
-        <iframe id="originFrame" src="https://zarifrouter99.lovable.app" title="NEXUS-9 Original"></iframe>
       </div>
     </section>
 
@@ -259,8 +216,8 @@
 
       <div class="card about-card">
         <h2>ℹ️ Tentang</h2>
-        <p>NEXUS-9 Mobile v1.2 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
-        <div class="row-between"><span>Versi</span><b>1.2.0</b></div>
+        <p>NEXUS-9 Mobile v1.3 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
+        <div class="row-between"><span>Versi</span><b>1.3.0</b></div>
         <div class="row-between"><span>Lisensi</span><b>MIT</b></div>
       </div>
     </section>
@@ -268,8 +225,7 @@
 
   <nav class="tabbar" role="tablist">
     <button class="tab active" data-view="chat" role="tab"><span class="tab-ico">💬</span><span>Chat</span></button>
-    <button class="tab" data-view="sandbox" role="tab"><span class="tab-ico">🧪</span><span>Sandbox</span></button>
-    <button class="tab" data-view="origin" role="tab"><span class="tab-ico">🌐</span><span>Origin</span></button>
+
     <button class="tab" data-view="agent" role="tab"><span class="tab-ico">🧠</span><span>Agent</span></button>
     <button class="tab" data-view="settings" role="tab"><span class="tab-ico">⚙️</span><span>Setelan</span></button>
   </nav>

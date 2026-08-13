@@ -1,7 +1,7 @@
 const PROVIDERS = {
   gemini: {
     endpoint: (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    build: (messages) => ({ contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) }),
+    build: (messages, model, system) => ({ systemInstruction: { parts: [{ text: system }] }, contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Gemini error ${res.status}`);
@@ -12,7 +12,7 @@ const PROVIDERS = {
   },
   groq: {
     endpoint: () => 'https://api.groq.com/openai/v1/chat/completions',
-    build: (messages, model) => ({ model, messages: messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content })) }),
+    build: (messages, model, system) => ({ model, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Groq error ${res.status}`);
@@ -21,7 +21,7 @@ const PROVIDERS = {
   },
   openai: {
     endpoint: () => 'https://api.openai.com/v1/chat/completions',
-    build: (messages, model) => ({ model, messages: messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content })) }),
+    build: (messages, model, system) => ({ model, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `OpenAI error ${res.status}`);
@@ -30,7 +30,7 @@ const PROVIDERS = {
   },
   claude: {
     endpoint: () => 'https://api.anthropic.com/v1/messages',
-    build: (messages, model) => ({ model, max_tokens: 4096, messages: messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content })) }),
+    build: (messages, model, system) => ({ model, max_tokens: 4096, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Claude error ${res.status}`);
@@ -40,6 +40,16 @@ const PROVIDERS = {
     },
   },
 };
+
+const SYSTEM_PROMPT = `Kamu NEXUS-9, agent AI mobile yang otonom (gaya kerja OpenClaw/OpenCode). Kamu punya akses sandbox Linux NYATA di server — bukan simulasi.
+
+Untuk menjalankan perintah, tulis persis SATU blok per baris di jawabanmu:
+<tool>perintah</tool>
+Contoh: <tool>npm install express</tool> - <tool>node -e "console.log(1+1)"</tool> - <tool>npm -v</tool> - <tool>apt search ffmpeg</tool>
+
+Tool tersedia: npm, node, npx, apt (update - show <pkg> - search <kata> - download <pkg> - list-deb <pkg>).
+Perintah dieksekusi otomatis dan hasil nyatanya dikirim balik kepadamu. Setelah menerima hasil, jawab user BERSANDARKAN OUTPUT NYATA itu - jangan pernah mengarang hasil.
+Jangan minta izin untuk menjalankan tool yang aman - langsung jalankan. Gunakan sandbox hampir setiap kali diminta: instal paket, cek versi, jalankan skrip, uji kode, cari paket apt, dll. Simpan blok <tool> di baris tersendiri (bukan di dalam blok kode markdown). Jawab dalam bahasa Indonesia.`;
 
 const strip = (s) => (s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
@@ -136,7 +146,7 @@ async function handler(req, res) {
   try { body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {}); }
   catch { return res.status(400).json({ error: 'JSON tidak valid' }); }
 
-  const { provider, apiKey, model, messages = [], tool, shopeeLogged } = body;
+  const { provider, apiKey, model, messages = [], tool, shopeeLogged, round = 0 } = body;
   if (!apiKey) return res.status(400).json({ error: 'API key kosong' });
   const cfg = PROVIDERS[provider];
   if (!cfg) return res.status(400).json({ error: `Provider tidak dikenal: ${provider}` });
@@ -147,7 +157,7 @@ async function handler(req, res) {
   const content = last.content || '';
 
   /* ---- Shopee: search / order ---- */
-  if (tool === 'shopee' || /shopee/i.test(content)) {
+  if (round === 0 && (tool === 'shopee' || /shopee/i.test(content))) {
     const urlMatch = content.match(/https?:\/\/[^\s]*shopee[^\s]*|shopee\.co\.id\/[^\s]*/i);
     const wantsOrder = /(order|beli|buy|pesan|checkout|keranjang|add to cart|auto buy|auto order)/i.test(content);
     if (wantsOrder && (urlMatch || content.includes('link'))) {
@@ -174,7 +184,7 @@ async function handler(req, res) {
   }
 
   /* ---- Web search ---- */
-  if ((tool === 'web' || /cari|search|berita terbaru|info terkini|googling/i.test(content)) && !/shopee/i.test(content)) {
+  if (round === 0 && (tool === 'web' || /cari|search|berita terbaru|info terkini|googling/i.test(content)) && !/shopee/i.test(content)) {
     try {
       const results = await webSearch(content.slice(0, 200));
       if (results.length) {
@@ -192,7 +202,7 @@ async function handler(req, res) {
     else if (provider === 'groq' || provider === 'openai') httpHeaders['Authorization'] = `Bearer ${apiKey}`;
     else if (provider === 'claude') { httpHeaders['x-api-key'] = apiKey; httpHeaders['anthropic-version'] = '2023-06-01'; }
 
-    const upstream = await fetch(endpoint, { method: 'POST', headers: httpHeaders, body: JSON.stringify(cfg.build(finalMessages, model)) });
+    const upstream = await fetch(endpoint, { method: 'POST', headers: httpHeaders, body: JSON.stringify(cfg.build(finalMessages, model, SYSTEM_PROMPT)) });
     const { text, usage } = await cfg.parse(upstream);
     return res.status(200).json({ text, usage: { total: usage } });
   } catch (err) {
