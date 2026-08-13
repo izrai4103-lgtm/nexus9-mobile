@@ -98,12 +98,18 @@
         </div>
       </div>
       <div class="card shopee-card">
-        <h2>🛒 Status Shopee</h2>
+        <h2>🛒 Shopee — Auto Order</h2>
         <div id="shopeeStatus" class="shopee-status">
           <div class="status-dot"></div>
-          Belum login — key NEXUS kamu tetap aman.
+          Belum login — auto order belum aktif.
         </div>
-        <button id="btnShopeeLogin" class="ghost-btn">Login Shopee</button>
+        <div class="shopee-actions">
+          <a id="shopeeLoginWeb" class="ghost-btn" href="https://shopee.co.id/buyer/login" target="_blank" rel="noopener">Login Shopee (web) →</a>
+          <a id="shopeeOpenApp" class="ghost-btn" href="shopee://home">Buka App Shopee</a>
+        </div>
+        <button id="btnShopeeConfirm" class="primary-btn" hidden>✓ Saya sudah login</button>
+        <button id="btnShopeeLogout" class="ghost-btn" hidden>Logout</button>
+        <p class="shopee-note">Login dilakukan langsung di situs/aplikasi Shopee (tab baru) — NEXUS-9 tidak pernah meminta atau menyimpan password Shopee-mu. Setelah login, tekan "Saya sudah login" agar agent boleh membuat pesanan di sesi Shopee kamu.</p>
       </div>
       <div class="card">
         <h2>📊 Statistik Sesi</h2>

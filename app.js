@@ -43,12 +43,17 @@
     });
   });
 
+  const linkify = (t) => esc(t).replace(
+    /(https?:\/\/[^\s<>"']+|shopee:\/\/[^\s<>"']+)/g,
+    (u) => `<a href="${u}" target="_blank" rel="noopener" style="color:var(--accent2);text-decoration:underline">${u}</a>`
+  );
+
   function renderMarkup(text) {
     const parts = text.split(/```(\w*)\n?([\s\S]*?)```/g);
-    if (parts.length === 1) return esc(text).replace(/\n/g, '<br>');
+    if (parts.length === 1) return linkify(text).replace(/\n/g, '<br>');
     let out = '';
     for (let i = 0; i < parts.length; i++) {
-      if (i % 3 === 0) out += esc(parts[i]).replace(/\n/g, '<br>');
+      if (i % 3 === 0) out += linkify(parts[i]).replace(/\n/g, '<br>');
       else if (i % 3 === 1) out += `<div class="tool-result">⌨️ menjalankan blok <b>${esc(parts[i] || 'code')}</b>…</div>`;
       else out += `<pre class="code">${esc(parts[i])}</pre>`;
     }
@@ -90,6 +95,7 @@
       model: state.model || MODELS[state.provider],
       messages: state.messages.slice(-12).concat({ role: 'user', content: userText }),
       tool,
+      shopeeLogged: state.shopeeLogged,
     };
     try {
       const res = await fetch('/api/chat', {
@@ -156,24 +162,41 @@
       haptic();
       const tool = btn.dataset.tool;
       const prompts = {
-        web: 'Gunakan tool web search: cari info terkini dari internet lalu rangkum dalam bahasa Indonesia.',
-        shopee: 'Gunakan tool Shopee: bantu cari produk dan urutkan pesanan dari marketplace Shopee.',
+        web: 'Cari info terkini dari internet lalu rangkum dalam bahasa Indonesia:',
+        shopee: 'Cari produk di Shopee (live):',
         code: 'Gunakan tool code: tulis kode yang rapi, lengkap dengan penjelasan singkat.',
       };
-      $('#input').value = (prompts[tool] || '') + (state.shopeeLogged && tool === 'shopee' ? ' (status: sudah login Shopee)' : '');
+      let v = prompts[tool] || '';
+      if (tool === 'shopee' && state.shopeeLogged) v = 'Saya sudah login Shopee. Cari produk lalu siapkan pesanan:';
+      $('#input').value = v;
       $('#input').focus();
     });
   });
 
-  $('#btnShopeeLogin').addEventListener('click', () => {
-    haptic();
-    state.shopeeLogged = !state.shopeeLogged;
-    localStorage.setItem('nx9_shopee', state.shopeeLogged ? '1' : '0');
+  function renderShopee() {
     const el = $('#shopeeStatus');
     el.classList.toggle('logged', state.shopeeLogged);
-    el.innerHTML = `<div class="status-dot"></div>${state.shopeeLogged ? 'Terhubung — kamu bisa minta NEXUS-9 cari & pesan produk.' : 'Belum login — key NEXUS kamu tetap aman.'}`;
-    $('#btnShopeeLogin').textContent = state.shopeeLogged ? 'Logout Shopee' : 'Login Shopee';
+    el.innerHTML = `<div class="status-dot"></div>${state.shopeeLogged ? 'Terhubung — NEXUS-9 boleh membuat pesanan di sesi Shopee kamu.' : 'Belum login — auto order belum aktif.'}`;
+    $('#btnShopeeConfirm').hidden = state.shopeeLogged;
+    $('#btnShopeeLogout').hidden = !state.shopeeLogged;
+  }
+  $('#shopeeLoginWeb').addEventListener('click', () => { haptic(); setStatus('Login di tab Shopee, lalu tekan "Saya sudah login"', false); });
+  $('#shopeeOpenApp').addEventListener('click', () => haptic());
+  $('#btnShopeeConfirm').addEventListener('click', () => {
+    haptic();
+    state.shopeeLogged = true;
+    localStorage.setItem('nx9_shopee', '1');
+    renderShopee();
+    setStatus('Sesi Shopee aktif — auto order siap.', true);
+    setTimeout(() => setStatus(''), 2200);
   });
+  $('#btnShopeeLogout').addEventListener('click', () => {
+    haptic();
+    state.shopeeLogged = false;
+    localStorage.setItem('nx9_shopee', '0');
+    renderShopee();
+  });
+  renderShopee();
 
   $('#provider').value = state.provider;
   $('#apiKey').value = state.apiKey;

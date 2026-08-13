@@ -148,3 +148,6 @@ pre.code { background:#0a0a14;border:1px solid var(--border);border-radius:12px;
 .sheet-grab { width:40px;height:4px;border-radius:99px;background:#3a3a52;margin:0 auto 14px; }
 .sheet h3 { font-family:'Space Grotesk'; margin-bottom:8px; }
 .sheet p { color:var(--muted); font-size:13px; line-height:1.55; margin-bottom:16px; }
+.shopee-actions { display:flex; gap:8px; margin-bottom:6px; }
+.shopee-actions .ghost-btn { margin-top:0; text-align:center; text-decoration:none; }
+.shopee-note { font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5; }
