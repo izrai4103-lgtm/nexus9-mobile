@@ -29,10 +29,18 @@ vercel --prod          # Vercel (static + serverless /api/chat)
 git push origin main   # GitHub
 ```
 
-## Jadi APK
-PWA ini bisa di-bundle jadi APK Android pakai salah satu cara:
-1. **Bubblewrap/TWA** (Google resmi): `npm i -g @bubblewrap/cli && bubblewrap init --manifest https://<vercel-url>/manifest.webmanifest`
+## APK Android (WebView wrapper)
+APK sudah jadi: `dist/nexus9-mobile.apk` — WebView fullscreen menunjuk ke `https://nexus9-mobile.vercel.app`, paket `com.nexus9.mobile`, minSdk 24 / targetSdk 34, sudah ditandatangani (v1+v2), ikon app asli.
+
+Build ulang (butuh JDK 17 + Android SDK + qemu-user untuk mesin ARM):
+```bash
+bash android/build-apk.sh
+# hasil: android/build/nexus9-mobile.apk
+# keystore & password dev: android/build/nexus9.keystore / nexus9pass
+```
+
+Cara lain:
+1. **Bubblewrap/TWA**: `bubblewrap init --manifest https://nexus9-mobile.vercel.app/manifest.webmanifest`
 2. **PWA Builder** (pwabuilder.com): masukkan URL Vercel → download APK
-3. **Android Studio WebView** project wrapper menunjuk ke URL yang sama
 
 Semua fungsi app ada di `api/chat.js` (Node 18+, tanpa dependency eksternal).
