@@ -3,7 +3,7 @@
 Versi **mobile-only** dari aplikasi AI agent NEXUS-9 (`zarifrouter99.lovable.app`), dibangun ulang sebagai PWA yang bisa di-install di Android/iPhone (web app) dan siap di-bundle jadi APK.
 
 ## Fitur
-- 🧪 **Sandbox otomatis ala OpenClaw/OpenCode** — AI memakai sandbox server sendirian (npm · node · npx · apt) langsung dari chat lewat blok `<tool>perintah</tool>`; hasil eksekusi **nyata** dikirim balik ke AI, AI menjawab berdasarkan output itu, dan hasilnya tampil sebagai bubble terminal di chat. Tab Sandbox & Origin dihapus dari UI — sandbox khusus dipakai AI, bukan user
+- 🧪 **Sandbox otomatis ala OpenClaw/OpenCode** — AI memakai sandbox server sendirian (npm · node · npx · apt) langsung dari chat via **native tool-calling** (`run_sandbox` function di OpenAI/Groq/Gemini/Claude) atau fallback blok `<tool>perintah</tool>`; hasil eksekusi **nyata** dikirim balik ke AI, AI menjawab berdasarkan output itu, dan hasilnya tampil sebagai bubble terminal di chat. Tab Sandbox & Origin dihapus dari UI — sandbox khusus dipakai AI, bukan user
 - 💬 Chat AI dengan **BYO API key** (Gemini, Groq, GPT, Claude) + system prompt agen otonom (maks 3 ronde tool-loop per pesan)
 - 💬 Chat AI dengan **BYO API key** (Gemini, Groq, GPT, Claude) — key hanya tersimpan di `localStorage` browser, tidak pernah ke server kami
 - 🌐 Web search real-time (Bing → Mojeek → DuckDuckGo, di-proxy server)
@@ -47,7 +47,11 @@ Cara lain:
 Semua fungsi app ada di `api/chat.js` (Node 18+, tanpa dependency eksternal).
 
 ## Executor Server (npm & apt) — `/api/run`
-AI menjalankan perintah nyata lewat chat secara otomatis. Di jawabannya AI menulis blok `<tool>perintah</tool>` (contoh: `<tool>npm install express</tool>`), aplikasi mengeksekusinya via `/api/run`, hasilnya dikirim balik ke AI (ronde berikutnya), dan bubble terminal tampil di chat. Maks 2 perintah per ronde, maks 3 ronde per pesan.
+Executor bersama di `lib/exec.js` dipakai `/api/run` (terminal) dan `/api/chat` (tool-calling AI).
+
+**Native function calling** (utamakan): server mendeklarasikan tool `run_sandbox` ke provider (OpenAI/Groq `tools`, Gemini `functionDeclarations`, Claude `tools`). Saat model meminta eksekusi, server menjalankannya via `lib/exec`, mengompres output (RTK), lalu melanjutkan ronde berikutnya dengan hasil nyata — maks 3 ronde, 6 eksekusi, 2 perintah/ronde. Respons berisi `tools[]` yang dirender client sebagai bubble terminal.
+
+**Fallback `<tool>`**: jika model tidak memanggil function, AI bisa menulis blok `<tool>perintah</tool>` di jawabannya; client mengeksekusi via `/api/run` dan meneruskan hasilnya ke ronde berikutnya (protokol lama tetap didukung).
 
 - **npm / node / npx**: dieksekusi aman (`execFile`, tanpa shell) di `/tmp/nx9run` — `npm install express` diuji live: 67 paket dalam 3 detik. `npm install -g` & perintah berbahaya diblokir.
 - **apt**: implementasi **pure-Node** (Vercel tidak punya binary `apt-get`). Pakai index `Packages` nyata dari `archive.ubuntu.com` (noble/main amd64):
