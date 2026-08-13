@@ -121,6 +121,48 @@
       </div>
     </section>
 
+    <!-- SANDBOX VIEW -->
+    <section id="view-sandbox" class="view plain">
+      <div class="sb-toolbar">
+        <select id="sbTemplate" aria-label="Template sandbox">
+          <option value="html">HTML Snack</option>
+          <option value="js">JS Playground</option>
+          <option value="todo">Todo CRUD</option>
+          <option value="canvas">Canvas</option>
+        </select>
+        <button id="sbRun" class="mini-btn cta" type="button">▶ Run</button>
+        <label class="sb-auto"><input type="checkbox" id="sbAuto" checked> auto</label>
+      </div>
+      <div class="sb-tabs">
+        <button class="sb-tab active" data-tab="html" type="button">HTML</button>
+        <button class="sb-tab" data-tab="css" type="button">CSS</button>
+        <button class="sb-tab" data-tab="js" type="button">JS</button>
+        <button class="sb-tab" data-tab="out" type="button">Console</button>
+      </div>
+      <div class="sb-panels">
+        <div class="sb-pane active" data-pane="html"><textarea id="sbHtml" spellcheck="false" placeholder="HTML…"></textarea></div>
+        <div class="sb-pane" data-pane="css"><textarea id="sbCss" spellcheck="false" placeholder="CSS…"></textarea></div>
+        <div class="sb-pane" data-pane="js"><textarea id="sbJs" spellcheck="false" placeholder="JavaScript…"></textarea></div>
+        <div class="sb-pane" data-pane="out"><div id="sbConsole" class="sb-console"></div></div>
+      </div>
+      <div class="sb-preview-label">📺 Preview (sandboxed)</div>
+      <iframe id="sbFrame" class="sb-frame" title="Sandbox preview" sandbox="allow-scripts allow-modals allow-forms allow-popups"></iframe>
+    </section>
+
+    <!-- ORIGIN VIEW -->
+    <section id="view-origin" class="view plain">
+      <div class="origin-toolbar">
+        <button id="btnOriginBack" class="icon-btn small" type="button" aria-label="Kembali">‹</button>
+        <button id="btnOriginFwd" class="icon-btn small" type="button" aria-label="Maju">›</button>
+        <button id="btnOriginReload" class="icon-btn small" type="button" aria-label="Muat ulang">↻</button>
+        <a id="btnOriginOpen" class="icon-btn small" href="https://zarifrouter99.lovable.app" target="_blank" rel="noopener" aria-label="Buka di tab baru">↗</a>
+        <span class="origin-title">zarifrouter99.lovable.app</span>
+      </div>
+      <div class="origin-wrap">
+        <iframe id="originFrame" src="https://zarifrouter99.lovable.app" title="NEXUS-9 Original"></iframe>
+      </div>
+    </section>
+
     <section id="view-settings" class="view">
       <div class="card">
         <h2>⚙️ Provider AI</h2>
@@ -169,6 +211,8 @@
 
   <nav class="tabbar" role="tablist">
     <button class="tab active" data-view="chat" role="tab"><span class="tab-ico">💬</span><span>Chat</span></button>
+    <button class="tab" data-view="sandbox" role="tab"><span class="tab-ico">🧪</span><span>Sandbox</span></button>
+    <button class="tab" data-view="origin" role="tab"><span class="tab-ico">🌐</span><span>Origin</span></button>
     <button class="tab" data-view="agent" role="tab"><span class="tab-ico">🧠</span><span>Agent</span></button>
     <button class="tab" data-view="settings" role="tab"><span class="tab-ico">⚙️</span><span>Setelan</span></button>
   </nav>

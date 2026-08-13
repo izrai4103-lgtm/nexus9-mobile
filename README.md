@@ -3,11 +3,12 @@
 Versi **mobile-only** dari aplikasi AI agent NEXUS-9 (`zarifrouter99.lovable.app`), dibangun ulang sebagai PWA yang bisa di-install di Android/iPhone (web app) dan siap di-bundle jadi APK.
 
 ## Fitur
+- 🌐 **Tab Origin** — 100% terhubung ke app asli `zarifrouter99.lovable.app` (iframe fullscreen + tombol back/forward/reload/buka tab baru), semua fitur asli tetap jalan karena app asli itu SPA client-side
+- 🧪 **Sandbox lengkap** — editor HTML/CSS/JS live + preview sandboxed (iframe `sandbox` tanpa `allow-same-origin`) + panel Console yang menangkap `console.log/info/warn/error`, auto-run, 4 template (HTML Snack, JS Playground, Todo CRUD, Canvas), kode tersimpan di localStorage
 - 💬 Chat AI dengan **BYO API key** (Gemini, Groq, GPT, Claude) — key hanya tersimpan di `localStorage` browser, tidak pernah ke server kami
 - 🌐 Web search real-time (Bing → Mojeek → DuckDuckGo, di-proxy server)
-- 🛒 Tool Shopee (status login tersimpan lokal)
-- ⌨️ Render blok kode rapi dengan syntax fence
-- 🧩 MCP tools & statistik sesi
+- 🛒 Tool Shopee — login sesi sendiri + live search + link resmi buy-now/add-to-cart/checkout/deeplink app (mirror mekanisme asli)
+- 🧩 Tools agent & statistik sesi
 - 📲 PWA installable: manifest + service worker (offline shell), splash, safe-area iPhone
 - 🎨 UI mobile-first: dark glassmorphism, bottom tab bar, haptik Android, mode terang/gelap
 

@@ -272,6 +272,85 @@
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
+  /* ---------- Sandbox ---------- */
+  const SB_STORE = { html: 'nx9_sb_html', css: 'nx9_sb_css', js: 'nx9_sb_js' };
+  const TEMPLATES = {
+    html: {
+      html: `<div class="card">\n  <h1>Halo Sandbox 👋</h1>\n  <p id="msg">Klik tombol di bawah</p>\n  <button id="btn">Klik aku</button>\n</div>`,
+      css: `.card { max-width:260px; margin:24px auto; padding:20px; border-radius:14px; background:linear-gradient(135deg,#7c6cff,#fc6050); color:#fff; font-family:sans-serif; box-shadow:0 10px 30px rgba(0,0,0,.35); }\nbutton { margin-top:10px; padding:10px 18px; border:0; border-radius:10px; font-weight:600; cursor:pointer; }`,
+      js: `const btn = document.getElementById('btn');\nbtn.addEventListener('click', () => {\n  document.getElementById('msg').textContent = 'Berhasil diklik ✨';\n  console.log('Klik terdeteksi di sandbox');\n  console.info('Info: kamu bisa eksplorasi DOM bebas');\n});`,
+    },
+    js: {
+      html: `<pre id="out">menghitung…</pre>`,
+      css: `pre { background:#0b0b16; color:#3ddc97; padding:16px; border-radius:12px; font:12px monospace; white-space:pre-wrap; }`,
+      js: `function fib(n) { return n < 2 ? n : fib(n-1) + fib(n-2); }\nconst seq = Array.from({length:12}, (_,i)=>fib(i));\nconsole.log('Fibonacci:', seq.join(', '));\nconsole.table && console.table(seq);\ndocument.getElementById('out').textContent = 'Fibonacci: ' + seq.join(' → ');\n// error test: buka Console di panel bawah`,
+    },
+    todo: {
+      html: `<div id="app"></div>`,
+      css: `body { font-family:sans-serif; background:#f3f1ff; }\n.todo { max-width:280px; margin:30px auto; background:#fff; border-radius:14px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.12); }\n.todo input { width:100%; padding:9px; border:1px solid #ddd; border-radius:8px; margin-bottom:8px; }\n.todo button { padding:7px 12px; border:0; border-radius:8px; background:#7c6cff; color:#fff; }\n.todo li { padding:5px 0; }`,
+      js: `const app = document.getElementById('app');\napp.innerHTML = '<div class=\"todo\"><h2>Todo Sandbox ✓</h2><input id=\"in\" placeholder=\"tugas baru…\"><button id=\"add\">Tambah</button><ul id=\"list\"></ul></div>';\nconst inp = document.getElementById('in');\nconst add = document.getElementById('add');\nconst list = document.getElementById('list');\nfunction addTodo(){ const v = inp.value.trim(); if(!v) return; const li = document.createElement('li'); li.textContent = v; list.appendChild(li); inp.value=''; console.log('Todo ditambahkan:', v); }\nadd.onclick = addTodo;\ninp.onkeydown = (e)=>{ if(e.key==='Enter') addTodo(); };`,
+    },
+    canvas: {
+      html: `<canvas id="c"></canvas>`,
+      css: `body { margin:0; background:#0b0b16; }\ncanvas { display:block; width:100vw; height:100vh; }`,
+      js: `const c = document.getElementById('c');\nc.width = innerWidth; c.height = innerHeight;\nconst ctx = c.getContext('2d');\nlet t = 0;\nfunction draw(){ ctx.clearRect(0,0,c.width,c.height);\n  for(let i=0;i<40;i++){ const x = c.width/2 + Math.cos(t + i*0.4)*i*8; const y = c.height/2 + Math.sin(t*1.3 + i*0.7)*i*8; ctx.beginPath(); ctx.arc(x,y,4,0,7); ctx.fillStyle = 'hsl('+((t*40 + i*9)%360)+',80%,60%)'; ctx.fill(); }\n  t += 0.01; requestAnimationFrame(draw); }\ndraw();\nconsole.log('Canvas animasi berjalan ✨');`,
+    },
+  };
+  const sb = { html: $('#sbHtml'), css: $('#sbCss'), js: $('#sbJs') };
+  const consoleEl = $('#sbConsole');
+  const frame = $('#sbFrame');
+
+  function sbLog(type, text) {
+    const div = document.createElement('div');
+    div.className = 'line ' + type;
+    div.textContent = text;
+    consoleEl.appendChild(div);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+  function sbClear() { consoleEl.innerHTML = '<div class="line empty">// console — keluaran kode kamu di sini</div>'; }
+  function sbLoad(code, isTemplate) {
+    sb.html.value = code.html; sb.css.value = code.css; sb.js.value = code.js;
+    if (isTemplate) { Object.values(SB_STORE).forEach((k) => localStorage.removeItem(k)); }
+    sbClear(); sbRun();
+  }
+  function sbRun() {
+    Object.entries({ html: sb.html.value, css: sb.css.value, js: sb.js.value }).forEach(([k, v]) => localStorage.setItem(SB_STORE[k], v));
+    const doc = `<!DOCTYPE html><html><head><style>${sb.css.value}</style></head><body>${sb.html.value}<script>(function(){const send=(m,a)=>{try{parent.postMessage({source:'nx9sb',type:m,args:a.map(x=>{try{return typeof x==='object'?(x===null?'null':JSON.stringify(x)):String(x)}catch(e){return '[unserializable]'}}),count:a.length},'*')}catch(e){}};['log','info','warn','error','debug'].forEach(m=>{const o=console[m];console[m]=function(){send(m,[...arguments]);o.apply(console,arguments)}});window.onerror=(msg,src,line,col)=>{try{send('error',[String(msg)+' @'+line+':'+col])}catch(e){}};})();<\/script><script>${sb.js.value}<\/script></body></html>`;
+    frame.srcdoc = doc;
+  }
+  window.addEventListener('message', (e) => {
+    if (!e.data || e.data.source !== 'nx9sb') return;
+    const { type, args, count } = e.data;
+    const text = args.join(' ') + (count > args.length ? ' …' : '');
+    sbLog(type === 'warn' ? 'warn' : type === 'error' || type === 'debug' ? 'error' : type, text);
+  });
+  $('#sbTemplate').addEventListener('change', () => sbLoad(TEMPLATES[$('#sbTemplate').value], true));
+  $('#sbRun').addEventListener('click', () => { haptic(); sbClear(); sbRun(); });
+  $('#sbAuto').addEventListener('change', () => {
+    if ($('#sbAuto').checked) { sb.html.oninput = debounceRun; sb.css.oninput = debounceRun; sb.js.oninput = debounceRun; sbRun(); }
+    else { sb.html.oninput = null; sb.css.oninput = null; sb.js.oninput = null; }
+  });
+  let debounceRun = (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => { sbClear(); sbRun(); }, 600); }; })();
+  sb.html.oninput = debounceRun; sb.css.oninput = debounceRun; sb.js.oninput = debounceRun;
+  $$('.sb-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      haptic();
+      $$('.sb-tab').forEach((t) => t.classList.toggle('active', t === tab));
+      $$('.sb-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === tab.dataset.tab));
+    });
+  });
+  (() => {
+    const stored = Object.values(SB_STORE).some((k) => localStorage.getItem(k));
+    if (stored) sbLoad({ html: localStorage.getItem(SB_STORE.html) || '', css: localStorage.getItem(SB_STORE.css) || '', js: localStorage.getItem(SB_STORE.js) || '' }, false);
+    else sbLoad(TEMPLATES.html, true);
+  })();
+
+  /* ---------- Origin (100% terhubung ke zarifrouter99.lovable.app) ---------- */
+  const oframe = $('#originFrame');
+  $('#btnOriginBack').addEventListener('click', () => { try { oframe.contentWindow.history.back(); } catch {} });
+  $('#btnOriginFwd').addEventListener('click', () => { try { oframe.contentWindow.history.forward(); } catch {} });
+  $('#btnOriginReload').addEventListener('click', () => { haptic(); oframe.src = oframe.src; });
+
   $('#statMessages').textContent = '0';
   setInterval(() => {
     $('#statTime').textContent = Math.floor((Date.now() - state.startedAt) / 60000) + 'm';
