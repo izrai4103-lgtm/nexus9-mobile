@@ -60,6 +60,7 @@
           <button class="tool-btn" data-tool="web" aria-label="Web search"><span>🌐</span> Search</button>
           <button class="tool-btn" data-tool="shopee" aria-label="Shopee"><span>🛒</span> Shopee</button>
           <button class="tool-btn" data-tool="code" aria-label="Code"><span>⌨️</span> Code</button>
+          <button id="quotaPill" class="quota-pill" title="Sisa kuota & waktu reset" aria-label="Sisa kuota & waktu reset">📊 …</button>
         </div>
         <div class="composer-row">
           <textarea id="input" rows="1" placeholder="Tanya NEXUS-9 apa saja…" enterkeyhint="send"></textarea>
@@ -217,10 +218,49 @@
         <div class="row-between"><span>Mode aktif</span><span id="rtkSwitch" class="switch on" data-state="1"></span></div>
       </div>
 
+      <div class="card quota-card">
+        <h2>📊 Quota Tracking</h2>
+        <p class="quota-desc">Pantau sisa kuota & waktu reset langganan secara <b>real-time</b> — dihitung dari pemakaian nyata lewat aplikasi ini (request + token dari respons provider).</p>
+        <div class="quota-bar"><div id="quotaBar" class="quota-bar-fill"></div></div>
+        <div class="quota-nums"><b id="quotaRemain">0</b><span class="quota-muted">sisa dari <b id="quotaCap">0</b> token · <b id="quotaReqs">0</b> request</span></div>
+        <div class="quota-row"><span>⏳ Reset dalam</span><b id="quotaCountdown" class="mono">--:--:--</b></div>
+        <div class="quota-row"><span>🪙 Token dipakai</span><b id="quotaTokens">0</b></div>
+        <div id="quotaProviders" class="quota-providers"></div>
+        <div class="field">
+          <label for="quotaCycle">Siklus reset</label>
+          <select id="quotaCycle">
+            <option value="daily">Harian (tengah malam)</option>
+            <option value="weekly">Mingguan (Senin 00:00)</option>
+            <option value="monthly">Bulanan (tgl 1)</option>
+            <option value="custom">Tanggal khusus (langganan)</option>
+          </select>
+        </div>
+        <div class="field" id="quotaCustomWrap" hidden>
+          <label for="quotaCustomDate">Tanggal reset berikutnya</label>
+          <input type="datetime-local" id="quotaCustomDate">
+        </div>
+        <div class="field">
+          <label for="quotaCapInput">Batas token per siklus</label>
+          <input type="number" id="quotaCapInput" min="100" step="1000">
+          <div class="chip-row">
+            <button type="button" class="chip-btn" data-cap="100000">100K</button>
+            <button type="button" class="chip-btn" data-cap="500000">500K</button>
+            <button type="button" class="chip-btn" data-cap="1000000">1M</button>
+            <button type="button" class="chip-btn" data-cap="5000000">5M</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="quotaReqInput">Batas request per siklus</label>
+          <input type="number" id="quotaReqInput" min="1">
+        </div>
+        <div class="row-between"><span>⛔ Blokir otomatis saat habis</span><span id="quotaSwitch" class="switch on" data-state="1"></span></div>
+        <button id="quotaResetNow" class="ghost-btn full" type="button">⟳ Reset kuota sekarang</button>
+      </div>
+
       <div class="card about-card">
         <h2>ℹ️ Tentang</h2>
-        <p>NEXUS-9 Mobile v1.0 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
-        <div class="row-between"><span>Versi</span><b>1.0.0</b></div>
+        <p>NEXUS-9 Mobile v1.2 — versi mobile-only dari aplikasi asli. Bebas, unlimited, tanpa server pusat. <b>BYO Key:</b> semua request pergi langsung dari browser kamu ke provider AI.</p>
+        <div class="row-between"><span>Versi</span><b>1.2.0</b></div>
         <div class="row-between"><span>Lisensi</span><b>MIT</b></div>
       </div>
     </section>

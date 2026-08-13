@@ -197,3 +197,24 @@ pre.code { background:#0a0a14;border:1px solid var(--border);border-radius:12px;
 .rtk-desc { font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5; }
 .rtk-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; color:var(--green); background:rgba(61,220,151,.12); border:1px solid rgba(61,220,151,.35); padding:2px 8px; border-radius:99px; margin-top:6px; }
 .term .rtk-badge { margin-top:8px; display:inline-flex; }
+
+/* ---------- Quota Tracking ---------- */
+.quota-desc { font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5; }
+.quota-bar { height:10px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-bottom:8px; }
+.quota-bar-fill { height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--green),#2bb98a); transition:width .4s ease; }
+.quota-bar-fill.mid { background:linear-gradient(90deg,#ffd479,#f5a623); }
+.quota-bar-fill.low { background:linear-gradient(90deg,#ff7b96,#fc6050); }
+.quota-nums { font-size:12.5px; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline; margin-bottom:12px; }
+.quota-nums .quota-muted { color:var(--muted); }
+.quota-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:7px 0; border-bottom:1px dashed var(--border); }
+.quota-row:last-of-type { border-bottom:0; }
+.mono { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--green); }
+.quota-providers { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; }
+.qp-chip { font-size:10.5px; padding:4px 8px; border-radius:99px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--muted); }
+.qp-chip b { color:var(--text); }
+.chip-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.chip-btn { font-size:11px; padding:5px 12px; border-radius:99px; border:1px solid var(--border); background:var(--card); color:var(--muted); cursor:pointer; }
+.chip-btn:active { transform:scale(.94); }
+.quota-pill { margin-left:auto; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--green); background:rgba(61,220,151,.1); border:1px solid rgba(61,220,151,.3); border-radius:99px; padding:6px 10px; cursor:pointer; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.quota-pill.mid { color:#ffd479; background:rgba(255,212,121,.1); border-color:rgba(255,212,121,.35); }
+.quota-pill.low { color:#ff7b96; background:rgba(255,123,150,.1); border-color:rgba(255,123,150,.35); }

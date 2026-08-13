@@ -50,6 +50,139 @@
   }
   const rtkBadge = (m) => (m && m.savedPct > 0 ? `<span class="rtk-badge">⚡ RTK −${m.savedPct}% · ${(m.saved / 1024).toFixed(1)}KB dihemat</span>` : '');
 
+  /* ---------- Quota Tracking (real-time) ---------- */
+  const DAY = 86400000;
+  const quotaState = {
+    on: localStorage.getItem('nx9_quota_on') !== '0',
+    cycle: localStorage.getItem('nx9_quota_cycle') || 'daily',
+    cap: Math.max(100, Number(localStorage.getItem('nx9_quota_cap') || 200000)),
+    reqCap: Math.max(1, Number(localStorage.getItem('nx9_quota_reqcap') || 1000)),
+    custom: Number(localStorage.getItem('nx9_quota_custom') || 0),
+    resetAt: Number(localStorage.getItem('nx9_quota_resetat') || 0),
+    tokens: Number(localStorage.getItem('nx9_quota_tokens') || 0),
+    reqs: Number(localStorage.getItem('nx9_quota_reqs') || 0),
+    prov: (() => { try { return JSON.parse(localStorage.getItem('nx9_quota_prov') || '{}'); } catch { return {}; } })(),
+  };
+  function nextReset(cycle, now) {
+    const n = now || Date.now();
+    if (cycle === 'weekly') {
+      const d = new Date(n); d.setHours(24, 0, 0, 0);
+      const days = (8 - d.getDay()) % 7 || 7;
+      d.setDate(d.getDate() + days);
+      return d.getTime();
+    }
+    if (cycle === 'monthly') {
+      const d = new Date(n); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    }
+    if (cycle === 'custom') {
+      let t = quotaState.custom || (n + 30 * DAY);
+      while (t <= n) t += 30 * DAY;
+      return t;
+    }
+    const d = new Date(n); d.setHours(24, 0, 0, 0);
+    return d.getTime();
+  }
+  function quotaSave() {
+    localStorage.setItem('nx9_quota_on', quotaState.on ? '1' : '0');
+    localStorage.setItem('nx9_quota_cycle', quotaState.cycle);
+    localStorage.setItem('nx9_quota_cap', String(quotaState.cap));
+    localStorage.setItem('nx9_quota_reqcap', String(quotaState.reqCap));
+    localStorage.setItem('nx9_quota_custom', String(quotaState.custom));
+    localStorage.setItem('nx9_quota_resetat', String(quotaState.resetAt));
+    localStorage.setItem('nx9_quota_tokens', String(quotaState.tokens));
+    localStorage.setItem('nx9_quota_reqs', String(quotaState.reqs));
+    localStorage.setItem('nx9_quota_prov', JSON.stringify(quotaState.prov));
+  }
+  function quotaReset() {
+    quotaState.tokens = 0;
+    quotaState.reqs = 0;
+    quotaState.prov = {};
+    quotaState.resetAt = nextReset(quotaState.cycle, Date.now());
+    quotaSave();
+    renderQuota();
+  }
+  function quotaPct() {
+    const used = Math.max(quotaState.tokens / quotaState.cap, quotaState.reqs / quotaState.reqCap);
+    return Math.min(100, Math.round(used * 100));
+  }
+  function quotaBlocked() {
+    return quotaState.tokens >= quotaState.cap || quotaState.reqs >= quotaState.reqCap;
+  }
+  function quotaCountdown(ts) {
+    const ms = Math.max(0, (ts || Date.now()) - Date.now());
+    const s = Math.floor(ms / 1000);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const pad = (v) => String(v).padStart(2, '0');
+    return d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  }
+  const quotaFmt = (n) => (n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n));
+  function renderQuota() {
+    if (!quotaState.resetAt) quotaState.resetAt = nextReset(quotaState.cycle, Date.now());
+    const pct = quotaPct();
+    const bar = $('#quotaBar');
+    if (bar) {
+      bar.style.width = pct + '%';
+      bar.classList.toggle('mid', pct >= 70 && pct < 90);
+      bar.classList.toggle('low', pct >= 90);
+    }
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    set('#quotaRemain', quotaFmt(Math.max(0, quotaState.cap - quotaState.tokens)));
+    set('#quotaCap', quotaFmt(quotaState.cap));
+    set('#quotaTokens', quotaFmt(quotaState.tokens));
+    set('#quotaReqs', quotaFmt(quotaState.reqs));
+    set('#quotaCountdown', quotaCountdown(quotaState.resetAt));
+    const sw = $('#quotaSwitch'); if (sw) sw.classList.toggle('on', quotaState.on);
+    const cv = $('#quotaCycle'); if (cv) cv.value = quotaState.cycle;
+    const ci = $('#quotaCapInput'); if (ci && document.activeElement !== ci) ci.value = quotaState.cap;
+    const ri = $('#quotaReqInput'); if (ri && document.activeElement !== ri) ri.value = quotaState.reqCap;
+    const cw = $('#quotaCustomWrap'); if (cw) cw.hidden = quotaState.cycle !== 'custom';
+    const cd = $('#quotaCustomDate');
+    if (cd && quotaState.cycle === 'custom' && quotaState.custom) {
+      cd.value = new Date(quotaState.custom - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    const provs = Object.entries(quotaState.prov);
+    const box = $('#quotaProviders');
+    if (box) box.innerHTML = provs.length
+      ? provs.map(([p, v]) => `<span class="qp-chip">${esc(p)} · <b>${quotaFmt(v.tokens)}</b> tok · <b>${v.reqs}</b> req</span>`).join('')
+      : '<span class="qp-chip">Belum ada pemakaian — kirim chat dulu</span>';
+    const pill = $('#quotaPill');
+    if (pill) {
+      const cls = pct >= 90 ? 'low' : pct >= 70 ? 'mid' : '';
+      pill.className = 'quota-pill' + (cls ? ' ' + cls : '');
+      pill.textContent = `📊 ${quotaState.on ? (100 - pct) + '%' : 'off'} · ${quotaCountdown(quotaState.resetAt)}`;
+      pill.title = quotaState.on
+        ? `Sisa ${quotaFmt(Math.max(0, quotaState.cap - quotaState.tokens))} token · reset ${quotaCountdown(quotaState.resetAt)}`
+        : 'Quota tracking nonaktif — aktifkan di ⚙️ Setelan';
+    }
+  }
+  function quotaRecord(provider, tokens) {
+    if (!quotaState.on) return;
+    quotaState.tokens += tokens || 0;
+    quotaState.reqs += 1;
+    quotaState.prov[provider] = quotaState.prov[provider] || { tokens: 0, reqs: 0 };
+    quotaState.prov[provider].tokens += tokens || 0;
+    quotaState.prov[provider].reqs += 1;
+    quotaSave();
+    renderQuota();
+    if (quotaBlocked()) {
+      setStatus('⛔ Kuota habis — request berikutnya diblokir sampai reset', false);
+      setTimeout(() => setStatus(''), 4200);
+    }
+  }
+  setInterval(() => {
+    if (quotaState.resetAt && Date.now() >= quotaState.resetAt) {
+      quotaReset();
+      setStatus('Kuota diperbarui — siklus baru dimulai ⏳', true);
+      setTimeout(() => setStatus(''), 2600);
+    } else {
+      renderQuota();
+    }
+  }, 1000);
+
   function setStatus(text, online = false) {
     const bar = $('#statusBar');
     if (!text) { bar.hidden = true; return; }
@@ -144,6 +277,10 @@
       addMessage('bot', 'Belum ada API key nih. Buka tab ⚙️ Setelan, isi key dari Gemini/Groq/GPT/Claude, lalu simpan. Key kamu hanya tersimpan di browser ini.');
       return;
     }
+    if (quotaState.on && quotaBlocked()) {
+      addMessage('bot', '⛔ Kuota habis. Reset otomatis dalam ' + quotaCountdown(quotaState.resetAt) + '. Naikkan batas atau reset di ⚙️ Setelan → Quota Tracking.');
+      return;
+    }
     const typingEl = addTyping();
     const payload = {
       provider: state.provider,
@@ -164,6 +301,7 @@
       typingEl.remove();
       state.tokens += (data.usage?.total || data.usage || 0);
       $('#statTokens').textContent = state.tokens.toLocaleString('id-ID');
+      quotaRecord(state.provider, data.usage?.total || 0);
       addMessage('bot', data.text);
       state.messages.push({ role: 'assistant', content: data.text });
     } catch (err) {
@@ -438,6 +576,66 @@
     setTimeout(() => setStatus(''), 1800);
   });
   renderRtk();
+
+  /* ---------- Quota Tracking handlers ---------- */
+  $('#quotaSwitch').addEventListener('click', () => {
+    quotaState.on = !quotaState.on;
+    quotaSave();
+    renderQuota();
+    setStatus(quotaState.on ? 'Quota tracking aktif — sisa kuota dipantau real-time' : 'Quota tracking dimatikan', quotaState.on);
+    setTimeout(() => setStatus(''), 2000);
+  });
+  $('#quotaCycle').addEventListener('change', () => {
+    quotaState.cycle = $('#quotaCycle').value;
+    quotaState.resetAt = nextReset(quotaState.cycle, Date.now());
+    quotaSave();
+    renderQuota();
+    setStatus('Siklus reset: ' + quotaState.cycle + ' — reset ' + quotaCountdown(quotaState.resetAt), true);
+    setTimeout(() => setStatus(''), 2200);
+  });
+  $('#quotaCustomDate').addEventListener('change', () => {
+    const v = $('#quotaCustomDate').value;
+    if (!v) return;
+    quotaState.custom = new Date(v).getTime();
+    quotaState.cycle = 'custom';
+    quotaState.resetAt = quotaState.custom;
+    $('#quotaCycle').value = 'custom';
+    quotaSave();
+    renderQuota();
+    setStatus('Reset langganan diatur ke tanggal khusus', true);
+    setTimeout(() => setStatus(''), 2000);
+  });
+  $('#quotaCapInput').addEventListener('change', () => {
+    quotaState.cap = Math.max(100, Number($('#quotaCapInput').value) || quotaState.cap);
+    quotaSave();
+    renderQuota();
+  });
+  $('#quotaReqInput').addEventListener('change', () => {
+    quotaState.reqCap = Math.max(1, Number($('#quotaReqInput').value) || quotaState.reqCap);
+    quotaSave();
+    renderQuota();
+  });
+  $$('.chip-btn').forEach((b) => b.addEventListener('click', () => {
+    haptic();
+    quotaState.cap = Number(b.dataset.cap);
+    quotaSave();
+    renderQuota();
+    setStatus('Batas kuota: ' + quotaFmt(quotaState.cap) + ' token per siklus', true);
+    setTimeout(() => setStatus(''), 1800);
+  }));
+  $('#quotaResetNow').addEventListener('click', () => {
+    if (!confirm('Reset pemakaian kuota sekarang?')) return;
+    haptic();
+    quotaReset();
+    setStatus('Kuota direset — siklus baru dimulai', true);
+    setTimeout(() => setStatus(''), 2000);
+  });
+  $('#quotaPill').addEventListener('click', () => {
+    haptic();
+    $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === 'settings'));
+    $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-settings'));
+  });
+  if (quotaState.resetAt && quotaState.resetAt <= Date.now()) quotaReset(); else renderQuota();
 
   /* ---------- Origin (100% terhubung ke zarifrouter99.lovable.app) ---------- */
   const oframe = $('#originFrame');
