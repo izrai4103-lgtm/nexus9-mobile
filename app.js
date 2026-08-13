@@ -319,6 +319,17 @@
       $('#statTokens').textContent = state.tokens.toLocaleString('id-ID');
       quotaRecord(state.provider, data.usage?.total || 0);
       finalText = data.text || '';
+      const tools = data.tools || [];
+      if (tools.length) {
+        addMessage('bot', '🔧 Memakai sandbox otomatis — AI menjalankan perintah lalu melanjutkan…');
+        for (const t of tools) {
+          addTerminal(t.cmd, { ok: t.ok !== false, code: t.code ?? 1, stdout: t.stdout || '', stderr: t.stderr || '', error: t.error || '', rtk: t.rtk });
+          msgs.push({ role: 'user', content: `[SANDBOX OUTPUT untuk "$ ${t.cmd}"]\n${t.stdout || ''}${t.stderr ? '\nstderr: ' + t.stderr : ''}${t.error ? '\n[error] ' + t.error : ''}\n[END SANDBOX OUTPUT — jawab berdasarkan hasil nyata ini dalam bahasa Indonesia]` });
+        }
+        round++;
+        if (!extractToolCmds(finalText).length) break;
+        continue;
+      }
       const cmds = extractToolCmds(finalText);
       if (!cmds.length) break;
       addMessage('bot', '🔧 Memakai sandbox otomatis — AI menjalankan perintah lalu melanjutkan…');

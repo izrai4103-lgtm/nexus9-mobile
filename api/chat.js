@@ -1,55 +1,93 @@
+const { executeCmd } = require('../lib/exec');
+const { compress } = require('../lib/rtk');
+
+const RUN_TOOL = {
+  name: 'run_sandbox',
+  description: 'Jalankan perintah di sandbox Linux server secara NYATA (npm, node, npx, apt update/show/search/download/list-deb). Gunakan untuk menjalankan kode, instal paket, cek versi, atau cari paket. Kirim cmd tanpa shell metacharacter.',
+  parameters: {
+    type: 'object',
+    properties: { cmd: { type: 'string', description: 'Perintah utuh, contoh: npm install express atau node -e "console.log(1+1)"' } },
+    required: ['cmd'],
+  },
+};
+const OPENAI_TOOL = { type: 'function', function: RUN_TOOL };
+const GEMINI_TOOL = { functionDeclarations: [{ name: RUN_TOOL.name, description: RUN_TOOL.description, parameters: RUN_TOOL.parameters }] };
+const CLAUDE_TOOL = { name: RUN_TOOL.name, description: RUN_TOOL.description, input_schema: RUN_TOOL.parameters };
+
 const PROVIDERS = {
   gemini: {
     endpoint: (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    build: (messages, model, system) => ({ systemInstruction: { parts: [{ text: system }] }, contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) }),
+    build: (messages, model, system) => ({
+      systemInstruction: { parts: [{ text: system }] },
+      tools: [GEMINI_TOOL],
+      contents: messages.map((m) => (m.parts ? { role: m.role === 'assistant' ? 'model' : 'user', parts: m.parts } : { role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Gemini error ${res.status}`);
-      const text = (data.candidates || []).flatMap((c) => (c.content?.parts || []).map((p) => p.text || '')).join('\n').trim();
-      if (!text) throw new Error('Gemini tidak mengembalikan teks.');
+      const text = (data.candidates || []).flatMap((c) => (c.content?.parts || []).filter((p) => p.text).map((p) => p.text || '')).join('\n').trim();
       return { text, usage: data.usageMetadata?.totalTokenCount || 0 };
     },
+    calls: (data) => {
+      const parts = (data.candidates || [])[0]?.content?.parts || [];
+      return parts.filter((p) => p.functionCall).map((p, i) => ({ id: `fc${i}`, name: p.functionCall.name, args: p.functionCall.args || {} }));
+    },
+    assistantMsg: (calls) => ({ role: 'assistant', parts: calls.map((c) => ({ functionCall: { name: c.name, args: c.args } })) }),
+    resultMsgs: (calls, outputs) => [{ role: 'user', parts: calls.map((c, i) => ({ functionResponse: { name: c.name, response: { result: outputs[i] } } })) }],
   },
   groq: {
     endpoint: () => 'https://api.groq.com/openai/v1/chat/completions',
-    build: (messages, model, system) => ({ model, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
+    build: (messages, model, system) => ({ model, tools: [OPENAI_TOOL], messages: [{ role: 'system', content: system }].concat(messages) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Groq error ${res.status}`);
       return { text: data.choices?.[0]?.message?.content || '', usage: data.usage?.total_tokens || 0 };
     },
+    calls: (data) => (data.choices?.[0]?.message?.tool_calls || []).map((tc) => {
+      let args = {};
+      try { args = JSON.parse(tc.function.arguments || '{}'); } catch { /* abaikan */ }
+      return { id: tc.id || 'tc', name: tc.function.name, args };
+    }),
+    assistantMsg: (calls) => ({ role: 'assistant', content: null, tool_calls: calls.map((c) => ({ id: c.id, type: 'function', function: { name: c.name, arguments: JSON.stringify(c.args) } })) }),
+    resultMsgs: (calls, outputs) => calls.map((c, i) => ({ role: 'tool', tool_call_id: c.id, content: outputs[i] })),
   },
   openai: {
     endpoint: () => 'https://api.openai.com/v1/chat/completions',
-    build: (messages, model, system) => ({ model, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
+    build: (messages, model, system) => ({ model, tools: [OPENAI_TOOL], messages: [{ role: 'system', content: system }].concat(messages) }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `OpenAI error ${res.status}`);
       return { text: data.choices?.[0]?.message?.content || '', usage: data.usage?.total_tokens || 0 };
     },
+    calls: (data) => (data.choices?.[0]?.message?.tool_calls || []).map((tc) => {
+      let args = {};
+      try { args = JSON.parse(tc.function.arguments || '{}'); } catch { /* abaikan */ }
+      return { id: tc.id || 'tc', name: tc.function.name, args };
+    }),
+    assistantMsg: (calls) => ({ role: 'assistant', content: null, tool_calls: calls.map((c) => ({ id: c.id, type: 'function', function: { name: c.name, arguments: JSON.stringify(c.args) } })) }),
+    resultMsgs: (calls, outputs) => calls.map((c, i) => ({ role: 'tool', tool_call_id: c.id, content: outputs[i] })),
   },
   claude: {
     endpoint: () => 'https://api.anthropic.com/v1/messages',
-    build: (messages, model, system) => ({ model, max_tokens: 4096, messages: [{ role: 'system', content: system }].concat(messages.map(({ role, content }) => ({ role: role === 'assistant' ? 'assistant' : 'user', content }))) }),
+    build: (messages, model, system) => ({ model, max_tokens: 4096, system, tools: [CLAUDE_TOOL], messages }),
     parse: async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message || `Claude error ${res.status}`);
       const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
-      if (!text) throw new Error('Claude tidak mengembalikan teks.');
       return { text, usage: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0) };
     },
+    calls: (data) => (data.content || []).filter((b) => b.type === 'tool_use').map((b) => ({ id: b.id || 'tu', name: b.name, args: b.input || {} })),
+    assistantMsg: (calls) => ({ role: 'assistant', content: calls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.args })) }),
+    resultMsgs: (calls, outputs) => [{ role: 'user', content: calls.map((c, i) => ({ type: 'tool_result', tool_use_id: c.id, content: outputs[i] })) }],
   },
 };
 
 const SYSTEM_PROMPT = `Kamu NEXUS-9, agent AI mobile yang otonom (gaya kerja OpenClaw/OpenCode). Kamu punya akses sandbox Linux NYATA di server — bukan simulasi.
 
-Untuk menjalankan perintah, tulis persis SATU blok per baris di jawabanmu:
-<tool>perintah</tool>
-Contoh: <tool>npm install express</tool> - <tool>node -e "console.log(1+1)"</tool> - <tool>npm -v</tool> - <tool>apt search ffmpeg</tool>
-
-Tool tersedia: npm, node, npx, apt (update - show <pkg> - search <kata> - download <pkg> - list-deb <pkg>).
-Perintah dieksekusi otomatis dan hasil nyatanya dikirim balik kepadamu. Setelah menerima hasil, jawab user BERSANDARKAN OUTPUT NYATA itu - jangan pernah mengarang hasil.
-Jangan minta izin untuk menjalankan tool yang aman - langsung jalankan. Gunakan sandbox hampir setiap kali diminta: instal paket, cek versi, jalankan skrip, uji kode, cari paket apt, dll. Simpan blok <tool> di baris tersendiri (bukan di dalam blok kode markdown). Jawab dalam bahasa Indonesia.`;
+Untuk menjalankan perintah, gunakan function run_sandbox dengan argumen cmd (contoh: npm install express, node -e "console.log(1+1)", npm -v, apt search ffmpeg). Tool tersedia: npm, node, npx, apt (update · show <pkg> · search <kata> · download <pkg> · list-deb <pkg>).
+Perintah dieksekusi nyata dan hasilnya dikirim balik kepadamu. Setelah menerima hasil, jawab user BERSANDARKAN OUTPUT NYATA itu - jangan pernah mengarang hasil.
+Jika function calling tidak tersedia, tulis persis blok per baris: <tool>perintah</tool> sebagai fallback.
+Jangan minta izin untuk menjalankan tool yang aman - langsung jalankan. Gunakan sandbox hampir setiap kali diminta: instal paket, cek versi, jalankan skrip, uji kode, cari paket apt, dll. Jawab dalam bahasa Indonesia.`;
 
 const strip = (s) => (s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
@@ -202,9 +240,37 @@ async function handler(req, res) {
     else if (provider === 'groq' || provider === 'openai') httpHeaders['Authorization'] = `Bearer ${apiKey}`;
     else if (provider === 'claude') { httpHeaders['x-api-key'] = apiKey; httpHeaders['anthropic-version'] = '2023-06-01'; }
 
-    const upstream = await fetch(endpoint, { method: 'POST', headers: httpHeaders, body: JSON.stringify(cfg.build(finalMessages, model, SYSTEM_PROMPT)) });
-    const { text, usage } = await cfg.parse(upstream);
-    return res.status(200).json({ text, usage: { total: usage } });
+    /* native tool-calling loop (maks 3 ronde, 6 eksekusi) — sandbox dipakai AI otomatis */
+    let history = finalMessages;
+    const toolsLog = [];
+    let totalUsage = 0;
+    let text = '';
+    for (let r = 0; r < 3; r++) {
+      const upstream = await fetch(endpoint, { method: 'POST', headers: httpHeaders, body: JSON.stringify(cfg.build(history, model, SYSTEM_PROMPT)) });
+      const data = await upstream.clone().json();
+      const { text: t, usage } = await cfg.parse(upstream);
+      totalUsage += usage || 0;
+      text = t || '';
+      const calls = (cfg.calls(data) || []).filter((c) => c.name === 'run_sandbox').slice(0, 2);
+      if (!calls.length) break;
+      if (toolsLog.length >= 6) break;
+      const outputs = [];
+      for (const c of calls) {
+        const result = await executeCmd(String(c.args.cmd || '').slice(0, 300));
+        const cOut = compress(result.stdout || '');
+        const cErr = compress(result.stderr || '');
+        const original = cOut.original + cErr.original;
+        const compressed = cOut.compressed + cErr.compressed;
+        const saved = Math.max(0, original - compressed);
+        const rtk = { original, compressed, saved, savedPct: original ? Math.round((saved / original) * 100) : 0, rules: [...new Set([...cOut.rules, ...cErr.rules])], skipped: cOut.skipped && cErr.skipped };
+        outputs.push([cOut.text, cErr.text ? `stderr:\n${cErr.text}` : '', result.error ? `error: ${result.error}` : ''].filter(Boolean).join('\n').slice(0, 24000));
+        toolsLog.push({ cmd: String(c.args.cmd || ''), ok: result.ok, code: result.code, stdout: cOut.text, stderr: cErr.text, error: result.error || '', rtk });
+        if (toolsLog.length >= 6) break;
+      }
+      if (!outputs.length) break;
+      history = history.concat(cfg.assistantMsg(calls)).concat(cfg.resultMsgs(calls, outputs));
+    }
+    return res.status(200).json({ text, usage: { total: totalUsage }, tools: toolsLog });
   } catch (err) {
     return res.status(502).json({ error: err.message || 'Gagal menghubungi provider' });
   }
